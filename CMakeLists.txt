@@ -4,4 +4,4 @@ project(Walker)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(Walker src/main.cpp src/controller.h)
+add_executable(Walker src/main.cpp src/controller.cpp)
