@@ -103,16 +103,8 @@ void Controller::compression(const std::string& param) {
                         std::istreambuf_iterator<char>());
     inputFile.close();
 
-    // Итеративное сжатие с подсчётом количества проходов
-    int passes = 0;
     std::string compressed = compressOnce(content);
-    while (compressed.size() < content.size()) {
-        content = compressed;
-        compressed = compressOnce(content);
-        ++passes;
-    }
 
-    // Сохраняем количество проходов в начале файла для корректной декомпрессии
     std::string outputPath = param + ".rle";
     std::ofstream outputFile(outputPath, std::ios::binary);
     if (!outputFile.is_open()) {
@@ -120,12 +112,10 @@ void Controller::compression(const std::string& param) {
         return;
     }
 
-    // Первая строка — число проходов, затем сжатые данные
-    outputFile << passes << "\n" << content;
+    outputFile << compressed;
     outputFile.close();
 
-    std::cout << "Compressed: " << param << " -> " << outputPath
-              << " (passes: " << passes << ")\n";
+    std::cout << "Compressed: " << param << " -> " << outputPath << "\n";
 }
 
 ////////////////////////////////////////////////////////////
@@ -140,7 +130,6 @@ std::string Controller::decompressOnce(const std::string& input) {
         char current = input[i];
         ++i;
 
-        // Читаем число, если оно следует за символом
         std::string numStr;
         while (i < input.size() && std::isdigit(static_cast<unsigned char>(input[i]))) {
             numStr += input[i];
@@ -166,28 +155,12 @@ void Controller::decompression(const std::string& param) {
         return;
     }
 
-    // Читаем количество проходов из первой строки
-    int passes = 0;
-    std::string passesLine;
-    std::getline(inputFile, passesLine);
-    try {
-        passes = std::stoi(passesLine);
-    } catch (...) {
-        std::cerr << "Error: invalid file format (missing passes count): " << param << "\n";
-        return;
-    }
-
     std::string content((std::istreambuf_iterator<char>(inputFile)),
                         std::istreambuf_iterator<char>());
     inputFile.close();
 
-    // Применяем декомпрессию столько раз, сколько было проходов сжатия
-    std::string decompressed = content;
-    for (int i = 0; i < passes; ++i) {
-        decompressed = decompressOnce(decompressed);
-    }
+    std::string decompressed = decompressOnce(content);
 
-    // Убираем расширение .rle если есть, иначе добавляем .dec
     std::string outputPath;
     const std::string ext = ".rle";
     if (param.size() > ext.size() &&
@@ -211,7 +184,8 @@ void Controller::decompression(const std::string& param) {
 
 ////////////////////////////////////////////////////////////
 std::filesystem::path Controller::getExeDir() {
-    wchar_t buffer[32767];  // Поддержка длинных путей (> MAX_PATH)
+    wchar_t buffer[32767];
     GetModuleFileNameW(nullptr, buffer, 32767);
     return std::filesystem::path(buffer).parent_path();
 }
+

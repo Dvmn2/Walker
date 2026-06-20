@@ -32,3 +32,4 @@ class Controller {
 
     std::filesystem::path getExeDir();
 };
+
